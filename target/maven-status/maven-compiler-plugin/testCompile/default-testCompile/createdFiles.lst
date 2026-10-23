@@ -1,0 +1,5 @@
+com\example\inventory\service\InventoryServiceTest$InMemoryRepository$1.class
+com\example\inventory\service\InventoryCostingServiceTest.class
+com\example\inventory\service\InventoryServiceTest$InMemoryRepository.class
+com\example\inventory\persistence\SupabasePostgresInventoryRepositoryTest.class
+com\example\inventory\service\InventoryServiceTest.class
