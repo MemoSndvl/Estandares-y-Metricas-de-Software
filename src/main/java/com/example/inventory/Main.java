@@ -22,6 +22,7 @@ import javax.swing.UIManager;
 
 import com.example.inventory.console.ConsoleApp;
 import com.example.inventory.gui.InventoryFrame;
+import com.example.inventory.gui.Theme;
 import com.example.inventory.gui.UserLoginDialog;
 import com.example.inventory.model.AppUser;
 import com.example.inventory.persistence.SupabasePostgresInventoryRepository;
@@ -33,6 +34,7 @@ public final class Main {
     private static final String DEFAULT_URL =
             "jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require";
     private static final String DEFAULT_USER = "postgres.qhdsnxctkcyzgqzhffak";
+    private static final String DEFAULT_PASSWORD = "Memoyjuan120314";
 
     private Main() {
     }
@@ -85,18 +87,7 @@ public final class Main {
     }
 
     private static void startGui() {
-        String password = System.getenv("SUPABASE_DB_PASSWORD");
-        if (password == null || password.isBlank()) {
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Configura la variable de entorno SUPABASE_DB_PASSWORD con la contraseña "
-                            + "de PostgreSQL de Supabase y reinicia VS Code. Después, cada persona "
-                            + "iniciará sesión con su cuenta de la aplicación.",
-                    "Falta configurar la conexión a Supabase",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
+        String password = databasePassword();
         String url = environmentOrDefault("SUPABASE_DB_URL", DEFAULT_URL);
         String user = environmentOrDefault("SUPABASE_DB_USER", DEFAULT_USER);
 
@@ -126,18 +117,7 @@ public final class Main {
                 dialog.dispose();
                 try {
                     AppContext context = get();
-                    AppUser appUser = UserLoginDialog.authenticate(null, context.userService());
-                    if (appUser != null) {
-                        try {
-                            if (context.userService().darkModeEnabled(appUser.id())) {
-                                applyTheme(true);
-                            }
-                        } catch (RuntimeException ignored) {
-                            // Si falla la preferencia, se queda el tema claro.
-                        }
-                        new InventoryFrame(context.inventoryService(), context.userService(), appUser)
-                                .setVisible(true);
-                    }
+                    showLogin(context);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
                     showStartError("Se interrumpió el inicio de la aplicación.");
@@ -155,6 +135,26 @@ public final class Main {
         };
         worker.execute();
         dialog.setVisible(true);
+    }
+
+    private static void showLogin(AppContext context) {
+        Theme.apply(false, true);
+        AppUser appUser = UserLoginDialog.authenticate(null, context.userService());
+        if (appUser == null) {
+            return;
+        }
+        boolean darkMode = false;
+        try {
+            darkMode = context.userService().darkModeEnabled(appUser.id());
+        } catch (RuntimeException ignored) {
+            // Si falla la preferencia, se queda el tema claro.
+        }
+        Theme.apply(darkMode, true);
+        new InventoryFrame(
+                context.inventoryService(),
+                context.userService(),
+                appUser,
+                () -> showLogin(context)).setVisible(true);
     }
 
     private static void showStartError(String message) {
@@ -183,19 +183,7 @@ public final class Main {
         if (password != null && !password.isBlank()) {
             return password;
         }
-        if (System.console() == null) {
-            throw new IllegalStateException(
-                    "No hay una consola interactiva disponible para solicitar la contraseña. "
-                            + "Inicia la aplicación desde una terminal PowerShell o configura "
-                            + "SUPABASE_DB_PASSWORD en las variables de entorno.");
-        }
-        char[] enteredPassword = System.console().readPassword("Contraseña de PostgreSQL: ");
-        if (enteredPassword == null || enteredPassword.length == 0) {
-            throw new IllegalStateException("La contraseña de PostgreSQL es obligatoria.");
-        }
-        String passwordValue = new String(enteredPassword);
-        Arrays.fill(enteredPassword, '\0');
-        return passwordValue;
+        return DEFAULT_PASSWORD;
     }
 
     private static void verifySupabaseConnection(DataSource dataSource) {
