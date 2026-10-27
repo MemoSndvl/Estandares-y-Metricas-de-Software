@@ -591,6 +591,8 @@ public final class InventoryFrame extends JFrame {
             showPage(page, label);
             if ("ledger".equals(page)) {
                 loadLedger();
+            } else if ("users".equals(page)) {
+                refreshUsers();
             }
         });
         navigationButtons.put(page, item);
@@ -915,7 +917,6 @@ public final class InventoryFrame extends JFrame {
         usersTable.getColumnModel().getColumn(3)
                 .setCellRenderer(new ChipRenderer(InventoryFrame::statusColors));
         usersTable.setAutoCreateRowSorter(true);
-        refreshUsers();
         return page;
     }
 
